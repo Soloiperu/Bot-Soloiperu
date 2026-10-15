@@ -1,4 +1,3 @@
-
 from flask import Flask, request
 import requests
 import os
@@ -7,10 +6,9 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-PAGE_TOKEN = os.environ.get('PAGE_TOKEN', 'TU_TOKEN_AQUI')
+PAGE_TOKEN = os.environ.get('PAGE_TOKEN', '')
 VERIFY_TOKEN = os.environ.get('VERIFY_TOKEN', 'soloiperu123')
 
-# Mensajes de Soloiperu
 MENSAJES = {
     'bienvenida': '''Hola 👋 Soy el asistente de Soloiperu - Tanques de Agua en Ica.
 
@@ -45,7 +43,7 @@ Atendemos de Lunes a Sabado 8am a 6pm. Delivery hoy mismo!''',
 Te mando al WhatsApp con fotos y video para que veas la calidad.
 
 Escribe ASESOR y te atiende Dario directamente al 942 418 535''',
-    'asesor': '''Perfecto 👨‍💼
+    'asesor': '''Perfecto 👨💼
 
 Te paso con Dario - Asesor de Soloiperu.
 
@@ -57,50 +55,36 @@ Respondo en menos de 5 minutos.'''
 
 def enviar_mensaje(recipient_id, texto):
     url = f"https://graph.facebook.com/v19.0/me/messages?access_token={PAGE_TOKEN}"
-    payload = {
-        "recipient": {"id": recipient_id},
-        "message": {"text": texto}
-    }
+    payload = {"recipient": {"id": recipient_id}, "message": {"text": texto}}
     r = requests.post(url, json=payload)
     print(f"Enviado a {recipient_id}: {r.status_code} - {r.text}")
-    # Guardar lead
-    guardar_lead(recipient_id, texto)
-
-def guardar_lead(sender_id, mensaje_recibido):
-    try:
-        with open('leads.txt', 'a', encoding='utf-8') as f:
-            f.write(f"{datetime.now()} | ID:{sender_id} | Msg: {mensaje_recibido}\n")
-    except:
-        pass
 
 @app.route('/')
 def home():
-    return "Bot Soloiperu esta ACTIVO - Ica", 200
+    return "Bot Soloiperu ACTIVO - Ica", 200
 
-@app.route('/webhook', methods=['GET'])
-def verificar():
-    # Facebook verifica que eres dueño del webhook
-    if request.args.get('hub.verify_token') == VERIFY_TOKEN:
-        return request.args.get('hub.challenge')
-    return "Token de verificacion invalido", 403
+@app.route('/webhook', methods=['GET', 'POST'])
+def webhook():
+    if request.method == 'GET':
+        # Verificacion de Facebook
+        if request.args.get('hub.verify_token') == VERIFY_TOKEN:
+            print("WEBHOOK VERIFICADO")
+            return request.args.get('hub.challenge')
+        print(f"Token invalido. Recibido: {request.args.get('hub.verify_token')} Esperado: {VERIFY_TOKEN}")
+        return "Token invalido", 403
 
-@app.route('/webhook', methods=['POST'])
-def recibir():
+    # POST - Llegan mensajes
     data = request.get_json()
-    print(json.dumps(data, indent=2))
+    print("MENSAJE RECIBIDO:", json.dumps(data, indent=2))
     
-    if data.get('object') == 'page':
+    if data and data.get('object') == 'page':
         for entry in data.get('entry', []):
-            for messaging_event in entry.get('messaging', []):
-                sender_id = messaging_event['sender']['id']
-                
-                if 'message' in messaging_event:
-                    message_text = messaging_event['message'].get('text', '').lower()
-                    
-                    if not message_text:
-                        continue
-                    
-                    # LOGICA DE RESPUESTAS AUTOMATICAS PARA MARKETPLACE
+            for event in entry.get('messaging', []):
+                if 'message' in event and 'text' in event['message']:
+                    sender_id = event['sender']['id']
+                    message_text = event['message']['text'].lower()
+                    print(f"De {sender_id}: {message_text}")
+
                     if any(p in message_text for p in ['disponible', 'hola', 'buenas', 'info', 'tanque']):
                         enviar_mensaje(sender_id, MENSAJES['bienvenida'])
                     elif any(p in message_text for p in ['precio', 'cuanto', 'costo', '1100', '2500', '5000']):
@@ -109,12 +93,10 @@ def recibir():
                         enviar_mensaje(sender_id, MENSAJES['ubicacion'])
                     elif 'fotos' in message_text or 'foto' in message_text:
                         enviar_mensaje(sender_id, MENSAJES['fotos'])
-                    elif 'asesor' in message_text or 'whatsapp' in message_text or 'humano' in message_text:
+                    elif 'asesor' in message_text or 'whatsapp' in message_text:
                         enviar_mensaje(sender_id, MENSAJES['asesor'])
                     else:
-                        # Respuesta por defecto
                         enviar_mensaje(sender_id, MENSAJES['bienvenida'])
-
     return "ok", 200
 
 if __name__ == '__main__':
