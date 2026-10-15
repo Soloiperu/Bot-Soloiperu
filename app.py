@@ -7,7 +7,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-PAGE_TOKEN = os.environ.get('PAGE_TOKEN', 'TU_TOKEN_AQUI')
+PAGE_TOKEN = os.environ.get('PAGE_TOKEN', 'EAAkV8hMnaZAoBSoZCWvpflDrmltL3I2uAgjOGJoQBVgi9q03IRPh6VNGvUF94oupS0OXpBaOozia3jYnw3lcbb3JJz6JIGDA6VZAP71Q5Yzis06izqWo5TISuiDOruhcsRDu1xzggYjK4R2bJwf3sZCUHvrHxOcodvSvOWuA9FVNoPAS9yftzJfY4OMjx4Rv9KtVRwZDZD')
 VERIFY_TOKEN = os.environ.get('VERIFY_TOKEN', 'soloiperu123')
 
 # Mensajes de Soloiperu
