@@ -60,6 +60,11 @@ def enviar_mensaje(recipient_id, texto):
     print(f"Enviado a {recipient_id}: {r.status_code} - {r.text}")
 
 @app.route('/')
+@app.route('/test-token')
+def test_token():
+    url = f"https://graph.facebook.com/v19.0/me?access_token={PAGE_TOKEN}"
+    r = requests.get(url)
+    return f"Token check: {r.status_code} - {r.text}", 200
 def home():
     return "Bot Soloiperu ACTIVO - Ica", 200
 
